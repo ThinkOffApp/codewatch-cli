@@ -23,7 +23,7 @@
   "homepage": "https://codewatch.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AntFarmApp/codewatch-cli"
+    "url": "https://github.com/ThinkOffApp/codewatch-cli"
   },
   "license": "AGPL-3.0",
   "os": [
