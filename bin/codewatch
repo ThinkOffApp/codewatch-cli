@@ -489,27 +489,46 @@ for event in events:
     replied_at = event.get('replied_at')
     source = event.get('source', '')
     title = event.get('title', '')
+    body = event.get('body', '')
+    event_type = event.get('event_type', '')
 
-    if not reply or not replied_at:
-        continue
-    if reply.strip().lower() in ('dismiss', 'dismissed', 'read', ''):
-        continue
+    # Handle replies to notifications
+    if reply and replied_at:
+        if reply.strip().lower() in ('dismiss', 'dismissed', 'read', ''):
+            continue
+        reply_key = f'{eid}:{replied_at}'
+        if reply_key in seen:
+            continue
+        seen.add(reply_key)
+        with open(seen_file, 'a') as f:
+            f.write(reply_key + '\n')
+        text = reply
+        label = f'Reply to \"{title}\"'
 
-    reply_key = f'{eid}:{replied_at}'
-    if reply_key in seen:
-        continue
+    # Handle new messages from app (plus button / compose)
+    elif source in ('codewatch-app', 'codewatch-watch') and (body or title):
+        msg_key = f'{eid}:msg'
+        if msg_key in seen:
+            continue
+        seen.add(msg_key)
+        with open(seen_file, 'a') as f:
+            f.write(msg_key + '\n')
+        text = body or title
+        label = 'Task from phone'
 
-    seen.add(reply_key)
-    with open(seen_file, 'a') as f:
-        f.write(reply_key + '\n')
+    else:
+        continue
 
     # Extract IDE name from source (e.g. 'claude-code@hostname' -> 'claude-code')
     ide_name = source.split('@')[0] if '@' in source else source
 
-    print(f'  [{source}] Reply to \"{title}\": {reply}')
+    print(f'  [{source}] {label}: {text}')
 
-    # Find matching tmux session
-    tmux_session = session_map.get(ide_name)
+    # For app messages, try all IDE sessions (prefer claude-code)
+    if source in ('codewatch-app', 'codewatch-watch'):
+        tmux_session = session_map.get('claude-code') or (list(session_map.values())[0] if session_map else None)
+    else:
+        tmux_session = session_map.get(ide_name)
 
     if tmux_session:
         try:
@@ -528,11 +547,11 @@ for event in events:
 
     # Desktop notification (macOS)
     try:
-        safe_title = title.replace('\"', '').replace(\"'\", '')[:60]
-        safe_reply = reply.replace('\"', '').replace(\"'\", '')[:200]
+        safe_title = label.replace('\"', '').replace(\"'\", '')[:60]
+        safe_text = text.replace('\"', '').replace(\"'\", '')[:200]
         subprocess.run(
             ['osascript', '-e',
-             f'display notification \"{safe_reply}\" with title \"CodeWatch\" subtitle \"{safe_title}\"'],
+             f'display notification \"{safe_text}\" with title \"CodeWatch\" subtitle \"{safe_title}\"'],
             capture_output=True, timeout=2
         )
     except Exception:
@@ -541,7 +560,7 @@ for event in events:
     # Linux notification
     try:
         subprocess.run(
-            ['notify-send', 'CodeWatch: ' + title[:60], reply[:200]],
+            ['notify-send', 'CodeWatch: ' + label[:60], text[:200]],
             capture_output=True, timeout=2
         )
     except FileNotFoundError:
