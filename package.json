@@ -1,0 +1,36 @@
+{
+  "name": "codewatch-cli",
+  "version": "1.0.0",
+  "description": "Get IDE notifications on your phone and watch. Reply by voice.",
+  "bin": {
+    "codewatch": "./bin/codewatch"
+  },
+  "keywords": [
+    "cli",
+    "ide",
+    "notifications",
+    "watch",
+    "phone",
+    "claude",
+    "cursor",
+    "codex",
+    "vscode",
+    "aider",
+    "windsurf",
+    "voice",
+    "wearable"
+  ],
+  "homepage": "https://codewatch.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AntFarmApp/codewatch-cli"
+  },
+  "license": "AGPL-3.0",
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "engines": {
+    "node": ">=14"
+  }
+}
