@@ -48,7 +48,7 @@ Adding a new IDE: implement `detect_*()` and `install_*_hook()` in `bin/codewatc
 
 ## Get the app
 
-Phone and watch apps available at [codewatch.dev](https://codewatch.dev)
+Phone and watch apps available at [codewatch.app](https://codewatch.app)
 
 ## License
 

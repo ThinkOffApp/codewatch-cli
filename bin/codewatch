@@ -1,6 +1,6 @@
 #!/bin/bash
 # CodeWatch CLI - IDE notifications on your phone and watch
-# https://codewatch.dev
+# https://codewatch.app
 #
 # Usage: npx codewatch-cli connect
 #        codewatch watch
@@ -27,7 +27,7 @@ Usage:
   codewatch disconnect        Remove all CodeWatch hooks
   codewatch version           Show version
 
-Get the app: https://codewatch.dev
+Get the app: https://codewatch.app
 EOF
 }
 
@@ -329,7 +329,7 @@ cmd_connect() {
 
     # Get credentials
     echo "  Enter your CodeWatch API key"
-    echo "  (get one at https://codewatch.dev or from the app)"
+    echo "  (get one at https://codewatch.app or from the app)"
     echo ""
     read -p "  API key: " api_key
     if [ -z "$api_key" ]; then
