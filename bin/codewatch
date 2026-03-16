@@ -327,20 +327,76 @@ cmd_connect() {
         fi
     fi
 
-    # Get credentials
-    echo "  Enter your CodeWatch API key"
-    echo "  (get one at https://codewatch.app or from the app)"
+    # Get credentials via browser auth
+    echo "  Signing in via browser..."
     echo ""
-    read -p "  API key: " api_key
-    if [ -z "$api_key" ]; then
-        echo "  Error: API key is required"
-        exit 1
+
+    local auth_response
+    auth_response=$(curl -sf -X POST "${RELAY_URL}/auth/cli" \
+        -H "Content-Type: application/json" 2>/dev/null) || true
+
+    local auth_code auth_url
+    auth_code=$(echo "$auth_response" | python3 -c "import json,sys; print(json.load(sys.stdin).get('code',''))" 2>/dev/null)
+    auth_url=$(echo "$auth_response" | python3 -c "import json,sys; print(json.load(sys.stdin).get('auth_url',''))" 2>/dev/null)
+
+    if [ -n "$auth_code" ] && [ -n "$auth_url" ]; then
+        echo "  Opening browser to sign in..."
+        echo "  Code: $auth_code"
+        echo ""
+        echo "  If the browser doesn't open, go to:"
+        echo "  $auth_url"
+        echo ""
+
+        # Open browser
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            open "$auth_url" 2>/dev/null
+        elif command -v xdg-open >/dev/null 2>&1; then
+            xdg-open "$auth_url" 2>/dev/null
+        fi
+
+        echo "  Waiting for sign-in..."
+        local attempts=0
+        local api_key=""
+        local user_id=""
+        while [ $attempts -lt 60 ]; do
+            local poll_response
+            poll_response=$(curl -sf "${RELAY_URL}/auth/cli?code=${auth_code}" 2>/dev/null) || true
+            local status
+            status=$(echo "$poll_response" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))" 2>/dev/null)
+
+            if [ "$status" = "complete" ]; then
+                api_key=$(echo "$poll_response" | python3 -c "import json,sys; print(json.load(sys.stdin).get('api_key',''))" 2>/dev/null)
+                user_id=$(echo "$poll_response" | python3 -c "import json,sys; print(json.load(sys.stdin).get('user_id',''))" 2>/dev/null)
+                echo "  Signed in as: $user_id"
+                break
+            fi
+
+            sleep 5
+            attempts=$((attempts + 1))
+        done
+
+        if [ -z "$api_key" ]; then
+            echo "  Browser sign-in timed out. Falling back to manual entry."
+            echo ""
+        fi
     fi
 
-    read -p "  User ID (your handle or email): " user_id
-    if [ -z "$user_id" ]; then
-        echo "  Error: User ID is required"
-        exit 1
+    # Fallback to manual entry if browser auth failed
+    if [ -z "${api_key:-}" ]; then
+        echo "  Enter your CodeWatch API key"
+        echo "  (get one at https://codewatch.app or from the app)"
+        echo ""
+        read -p "  API key: " api_key
+        if [ -z "$api_key" ]; then
+            echo "  Error: API key is required"
+            exit 1
+        fi
+
+        read -p "  User ID (your handle or email): " user_id
+        if [ -z "$user_id" ]; then
+            echo "  Error: User ID is required"
+            exit 1
+        fi
     fi
 
     CODEWATCH_API_KEY="$api_key"
